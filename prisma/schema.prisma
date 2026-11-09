@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Роли и статусы хранятся строками: SQLite в Prisma не поддерживает enum.
+// Допустимые значения — в src/lib/constants.ts
+
+model User {
+  id        String    @id @default(cuid())
+  phone     String    @unique
+  name      String?
+  email     String?
+  birthDate DateTime?
+  role      String    @default("CLIENT") // CLIENT | MANAGER | ADMIN
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  bookings      Booking[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  notifications Notification[]
+  auditLogs     AuditLog[]     @relation("Actor")
+
+  @@index([deletedAt])
+}
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model Trainer {
+  id             String     @id @default(cuid())
+  name           String
+  specialization String?
+  createdAt      DateTime   @default(now())
+  trainings      Training[]
+}
+
+model Room {
+  id        String     @id @default(cuid())
+  name      String
+  capacity  Int
+  trainings Training[]
+}
+
+model Training {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   @default("GROUP") // GROUP | PERSONAL
+  trainerId   String
+  roomId      String
+  startsAt    DateTime
+  durationMin Int      @default(60)
+  capacity    Int
+  priceCents  Int      @default(0)
+  status      String   @default("SCHEDULED") // SCHEDULED | CANCELLED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trainer  Trainer   @relation(fields: [trainerId], references: [id])
+  room     Room      @relation(fields: [roomId], references: [id])
+  bookings Booking[]
+
+  @@index([startsAt, status])
+  @@index([trainerId, startsAt])
+}
+
+model Booking {
+  id           String    @id @default(cuid())
+  userId       String
+  trainingId   String
+  status       String    @default("ACTIVE") // ACTIVE | CANCELLED | ATTENDED | NO_SHOW
+  qrToken      String    @unique
+  checkedInAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  training Training @relation(fields: [trainingId], references: [id])
+
+  @@unique([userId, trainingId])
+  @@index([trainingId, status])
+}
+
+model Subscription {
+  id         String    @id @default(cuid())
+  userId     String
+  planName   String
+  total      Int
+  left       Int
+  validUntil DateTime
+  status     String    @default("ACTIVE") // ACTIVE | EXPIRED | DEPLETED
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  payments Payment[]
+
+  @@index([userId, status])
+}
+
+model Payment {
+  id             String    @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  amountCents    Int
+  provider       String    @default("mock")
+  externalId     String?
+  status         String    @default("PENDING") // PENDING | PAID | FAILED | REFUNDED
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
+
+  user         User          @relation(fields: [userId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  channel   String // SMS | PUSH | IN_APP
+  event     String
+  payload   String?
+  status    String    @default("PENDING") // PENDING | SENT | FAILED
+  attempts  Int       @default(0)
+  error     String?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  before    String?
+  after     String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation("Actor", fields: [actorId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
