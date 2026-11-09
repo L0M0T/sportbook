@@ -83,6 +83,12 @@ export default async function MyPage() {
                   month: "long",
                 }).format(subscription.validUntil)}
               </p>
+              <Link
+                href="/subscriptions"
+                className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
+              >
+                Продлить →
+              </Link>
             </>
           ) : (
             <>
@@ -90,6 +96,12 @@ export default async function MyPage() {
               <p className="mt-1 text-sm text-muted">
                 Оформите абонемент, чтобы записываться на платные тренировки.
               </p>
+              <Link
+                href="/subscriptions"
+                className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
+              >
+                Выбрать абонемент →
+              </Link>
             </>
           )}
         </div>

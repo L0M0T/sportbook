@@ -1,5 +1,6 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { moscowAt } from "../src/lib/time";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
@@ -77,10 +78,18 @@ async function main() {
   const rooms = await Promise.all([
     prisma.room.create({ data: { name: "Зал A", capacity: 12 } }),
     prisma.room.create({ data: { name: "Зал B", capacity: 20 } }),
+    prisma.room.create({ data: { name: "Качалка", capacity: 15 } }),
   ]);
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  function pickRoom(direction: string) {
+    if (direction === "Силовая" || direction === "Персональная") {
+      return rooms[2];
+    }
+    if (direction === "Бокс" || direction === "Кроссфит") {
+      return rooms[1];
+    }
+    return rooms[0];
+  }
 
   let created = 0;
 
@@ -88,11 +97,9 @@ async function main() {
     for (let index = 0; index < TIMES.length; index += 1) {
       const template = TEMPLATES[(day + index) % TEMPLATES.length];
       const trainer = trainers[(day + index) % trainers.length];
-      const room = rooms[index % rooms.length];
+      const room = pickRoom(template.direction);
 
-      const startsAt = new Date(startOfToday);
-      startsAt.setDate(startsAt.getDate() + day);
-      startsAt.setHours(TIMES[index], 0, 0, 0);
+      const startsAt = moscowAt(day, TIMES[index]);
 
       if (startsAt.getTime() < Date.now()) continue;
 
@@ -113,9 +120,7 @@ async function main() {
     }
 
     // Персональная тренировка в 12:00, одно место.
-    const personalAt = new Date(startOfToday);
-    personalAt.setDate(personalAt.getDate() + day);
-    personalAt.setHours(12, 0, 0, 0);
+    const personalAt = moscowAt(day, 12);
 
     if (personalAt.getTime() > Date.now()) {
       await prisma.training.create({
@@ -124,7 +129,7 @@ async function main() {
           direction: "Персональная",
           type: "PERSONAL",
           trainerId: trainers[day % trainers.length].id,
-          roomId: rooms[0].id,
+          roomId: rooms[2].id,
           startsAt: personalAt,
           durationMin: 60,
           capacity: 1,
@@ -136,7 +141,7 @@ async function main() {
   }
 
   console.log(
-    `seed ok: users=3 (${admin.phone}, ${manager.phone}, ${client.phone}), trainers=3, rooms=2, trainings=${created}`,
+    `seed ok: users=3 (${admin.phone}, ${manager.phone}, ${client.phone}), trainers=3, rooms=3, trainings=${created}`,
   );
 }
 

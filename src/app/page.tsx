@@ -7,6 +7,7 @@ import {
   formatTime,
   plural,
 } from "@/lib/format";
+import { moscowMidnight } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -45,20 +46,15 @@ export default async function HomePage({
   const dir = params.dir ?? null;
 
   const now = new Date();
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  );
   let rangeStart = now;
-  let rangeEnd = new Date(startOfToday.getTime() + 7 * 86_400_000);
+  let rangeEnd = moscowMidnight(7);
 
   if (day === "today") {
-    rangeEnd = new Date(startOfToday.getTime() + 86_400_000);
+    rangeEnd = moscowMidnight(1);
   }
   if (day === "tomorrow") {
-    rangeStart = new Date(startOfToday.getTime() + 86_400_000);
-    rangeEnd = new Date(startOfToday.getTime() + 2 * 86_400_000);
+    rangeStart = moscowMidnight(1);
+    rangeEnd = moscowMidnight(2);
   }
 
   const [trainings, directions] = await Promise.all([

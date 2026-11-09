@@ -31,6 +31,12 @@ export async function SiteHeader() {
               Мои записи
             </Link>
           )}
+          <Link
+            href="/subscriptions"
+            className="rounded-lg px-3 py-2 transition hover:bg-surface-2 hover:text-ink"
+          >
+            Абонементы
+          </Link>
         </nav>
 
         <div className="ml-auto flex items-center gap-3 text-sm">
