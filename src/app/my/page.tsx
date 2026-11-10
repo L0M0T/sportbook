@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { formatDateTime, formatMoney, plural } from "@/lib/format";
@@ -32,7 +33,7 @@ export default async function MyPage() {
     }),
   ]);
 
-  const now = Date.now();
+  const now = new Date().getTime();
   const upcoming = bookings.filter(
     (booking) =>
       booking.status === "ACTIVE" && booking.training.startsAt.getTime() > now,
@@ -41,6 +42,17 @@ export default async function MyPage() {
     (booking) =>
       booking.status !== "ACTIVE" ||
       booking.training.startsAt.getTime() <= now,
+  );
+
+  const upcomingWithQr = await Promise.all(
+    upcoming.map(async (booking) => ({
+      booking,
+      qr: await QRCode.toDataURL(booking.qrToken, {
+        margin: 1,
+        width: 176,
+        color: { dark: "#0c1003", light: "#c9f75a" },
+      }),
+    })),
   );
 
   return (
@@ -139,7 +151,7 @@ export default async function MyPage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {upcoming.map((booking) => (
+            {upcomingWithQr.map(({ booking, qr }) => (
               <li
                 key={booking.id}
                 className="flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface p-4"
@@ -151,6 +163,24 @@ export default async function MyPage() {
                     {booking.training.trainer.name} ·{" "}
                     {booking.training.room.name}
                   </p>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-accent">
+                      Показать QR для входа
+                    </summary>
+                    <div className="mt-2 flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={qr}
+                        alt={`QR-код записи на ${booking.training.title}`}
+                        width={112}
+                        height={112}
+                        className="rounded-lg border border-accent/40"
+                      />
+                      <p className="max-w-40 font-mono text-[10px] break-all text-muted">
+                        {booking.qrToken}
+                      </p>
+                    </div>
+                  </details>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold">
@@ -158,7 +188,9 @@ export default async function MyPage() {
                       ? formatMoney(booking.training.priceCents)
                       : "Бесплатно"}
                   </p>
-                  <p className="text-xs text-muted">QR в приложении</p>
+                  <p className="text-xs text-muted">
+                    {booking.checkedInAt ? "Визит отмечен" : "QR в приложении"}
+                  </p>
                 </div>
                 <CancelButton bookingId={booking.id} />
               </li>

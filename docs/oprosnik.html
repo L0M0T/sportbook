@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Опросник: онлайн-запись в спортцентр</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --ink:#12161f; --muted:#6b7280; --line:#e3e6ea;
+    --accent:#4f46e5; --accent-dark:#4338ca; --accent-soft:#eef0ff; --ok:#15803d;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+  .top{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.92);
+       backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .top-in{max-width:940px;margin:0 auto;padding:12px 20px;display:flex;
+          align-items:center;gap:12px;flex-wrap:wrap}
+  .top-in strong{font-size:15px}
+  .muted{color:var(--muted);font-size:13px}
+  .grow{flex:1}
+  .pill{background:var(--accent-soft);color:var(--accent-dark);font-weight:700;
+        font-size:12.5px;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .track{height:3px;background:transparent}
+  #bar{height:3px;width:0;background:var(--accent);transition:width .2s ease}
+  main{max-width:940px;margin:0 auto;padding:20px 20px 130px}
+  .lead{color:var(--muted);font-size:14px;margin:0 0 18px;padding:0 4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+        padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card h2{display:flex;align-items:center;gap:10px;margin:0 0 16px;font-size:16.5px}
+  .num{display:inline-flex;align-items:center;justify-content:center;
+       width:26px;height:26px;border-radius:8px;background:var(--accent-soft);
+       color:var(--accent-dark);font-size:13px;font-weight:800;flex:none}
+  .q{margin:0 0 18px}
+  .q:last-child{margin-bottom:0}
+  .qtitle{font-weight:600;font-size:14.5px;margin-bottom:8px}
+  .qtitle .hint{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;
+       border:1px solid var(--line);border-radius:10px;cursor:pointer;
+       background:#fff;transition:.15s;user-select:none;font-size:14px}
+  .opt:hover{border-color:#c3c8d0;background:#fafbfc}
+  .opt input{accent-color:var(--accent);margin:0;flex:none}
+  .opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft);
+       color:#312e81;font-weight:600}
+  .free{width:100%;margin-top:8px;padding:9px 12px;border:1px dashed #cfd4dc;
+        border-radius:10px;background:#fafbfc;font:inherit;font-size:14px;color:var(--ink)}
+  .free:focus{outline:none;border-color:var(--accent);background:#fff;border-style:solid}
+  .free::placeholder{color:#9aa1ab}
+  .actions{position:fixed;bottom:0;left:0;right:0;z-index:20;
+           background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+           border-top:1px solid var(--line);padding:12px 20px}
+  .actions-in{max-width:940px;margin:0 auto;display:flex;gap:10px;
+              justify-content:flex-end;flex-wrap:wrap}
+  button{font:inherit;font-size:14px;font-weight:600;padding:10px 18px;
+         border-radius:10px;border:1px solid var(--line);background:#fff;
+         color:var(--ink);cursor:pointer;transition:.15s}
+  button:hover{border-color:#c3c8d0;background:#fafbfc}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{background:var(--accent-dark);border-color:var(--accent-dark)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  #result{margin-top:18px}
+  #result h2{margin-bottom:6px}
+  #out{width:100%;min-height:340px;font:13px/1.65 ui-monospace,Consolas,monospace;
+       padding:14px;border-radius:12px;border:1px solid var(--line);
+       background:#fbfbfd;color:var(--ink);resize:vertical}
+  .res-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .toast{position:fixed;left:50%;bottom:84px;transform:translate(-50%,20px);
+         background:#111827;color:#fff;padding:10px 18px;border-radius:10px;
+         font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:40}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (max-width:560px){
+    .card{padding:16px 16px;border-radius:14px}
+    main{padding:16px 12px 140px}
+    .opt{font-size:13.5px;padding:7px 10px}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <strong>Опросник по проекту</strong>
+    <span class="muted">онлайн-запись в спортцентр</span>
+    <span class="grow"></span>
+    <span id="counter" class="pill">0 / 30</span>
+  </div>
+  <div class="track"><div id="bar"></div></div>
+</div>
+
+<main>
+  <p class="lead">Кликай подходящие варианты. Писать — только если хочется уточнить.
+  Незаполненный пункт = «на усмотрение исполнителя».</p>
+
+  <div id="form">
+
+    <section class="card" data-title="1. Формат и сдача">
+      <h2><span class="num">1</span> Формат и сдача</h2>
+
+      <div class="q" data-q="Что сдаём">
+        <div class="qtitle">Что нужно сдать?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="f1" data-opt="рабочий код"><span>Рабочий код</span></label>
+          <label class="opt"><input type="radio" name="f1" data-opt="прототип и макеты"><span>Прототип, макеты</span></label>
+          <label class="opt"><input type="radio" name="f1" data-opt="ТЗ и документация"><span>ТЗ, документация</span></label>
+          <label class="opt"><input type="radio" name="f1" data-opt="код + документация"><span>Код + документация</span></label>
+        </div>
+        <input class="free" type="text" placeholder="Уточнение (необязательно)">
+      </div>
+
+      <div class="q" data-q="Срок">
+        <div class="qtitle">Сколько времени на проект?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="f2" data-opt="1–2 недели"><span>1–2 недели</span></label>
+          <label class="opt"><input type="radio" name="f2" data-opt="около месяца"><span>Около месяца</span></label>
+          <label class="opt"><input type="radio" name="f2" data-opt="семестр"><span>Семестр</span></label>
+          <label class="opt"><input type="radio" name="f2" data-opt="без дедлайна"><span>Без дедлайна</span></label>
+        </div>
+        <input class="free" type="text" placeholder="Точная дата, если есть">
+      </div>
+
+      <div class="q" data-q="Команда">
+        <div class="qtitle">Сколько человек делают проект?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="f3" data-opt="я один"><span>Я один</span></label>
+          <label class="opt"><input type="radio" name="f3" data-opt="2–3 человека"><span>2–3</span></label>
+          <label class="opt"><input type="radio" name="f3" data-opt="4 и больше"><span>4+</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Стек">
+        <div class="qtitle">Технологии заданы?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="f4" data-opt="свободный выбор"><span>Свободный выбор</span></label>
+          <label class="opt"><input type="radio" name="f4" data-opt="заданы преподавателем"><span>Заданы</span></label>
+        </div>
+        <input class="free" type="text" placeholder="Какие именно (если заданы)">
+      </div>
+    </section>
+
+    <section class="card" data-title="2. Пользователи">
+      <h2><span class="num">2</span> Пользователи</h2>
+
+      <div class="q" data-q="Роли">
+        <div class="qtitle">Какие роли есть в системе?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="u1" data-opt="клиент"><span>Клиент</span></label>
+          <label class="opt"><input type="checkbox" name="u1" data-opt="администратор"><span>Администратор</span></label>
+          <label class="opt"><input type="checkbox" name="u1" data-opt="тренер"><span>Тренер</span></label>
+          <label class="opt"><input type="checkbox" name="u1" data-opt="менеджер/ресепшн"><span>Менеджер / ресепшн</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Заказчик">
+        <div class="qtitle">Для кого проект?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="u2" data-opt="учебный, вымышленный"><span>Учебный, вымышленный</span></label>
+          <label class="opt"><input type="radio" name="u2" data-opt="реальный спортцентр"><span>Реальный спортцентр</span></label>
+          <label class="opt"><input type="radio" name="u2" data-opt="не знаю"><span>Не знаю</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Масштаб">
+        <div class="qtitle">Масштаб бизнеса?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="u3" data-opt="один зал"><span>Один зал</span></label>
+          <label class="opt"><input type="radio" name="u3" data-opt="сеть залов"><span>Сеть залов</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-title="3. Функционал записи">
+      <h2><span class="num">3</span> Функционал записи</h2>
+
+      <div class="q" data-q="Что входит в запись">
+        <div class="qtitle">Что должна уметь система?<span class="hint">отметь всё нужное</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="a1" data-opt="просмотр расписания"><span>Расписание тренировок</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="фильтры по направлению/тренеру/времени"><span>Фильтры</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="запись на групповую тренировку"><span>Групповая запись</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="запись на персональную тренировку"><span>Персональная запись</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="лимит мест и автозакрытие"><span>Лимит мест</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="лист ожидания"><span>Лист ожидания</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="отмена клиентом"><span>Отмена клиентом</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="перенос записи"><span>Перенос</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="абонементы и лимит занятий"><span>Абонементы</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="онлайн-оплата"><span>Онлайн-оплата</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="история посещений"><span>История посещений</span></label>
+          <label class="opt"><input type="checkbox" name="a1" data-opt="QR/чек-ин на входе"><span>QR-чек-ин</span></label>
+        </div>
+        <input class="free" type="text" placeholder="Что ещё нужно (необязательно)">
+      </div>
+    </section>
+
+    <section class="card" data-title="4. Нагрузка и надёжность">
+      <h2><span class="num">4</span> Нагрузка и надёжность</h2>
+
+      <div class="q" data-q="Всего клиентов">
+        <div class="qtitle">Сколько всего клиентов у центра?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="l1" data-opt="до 100"><span>До 100</span></label>
+          <label class="opt"><input type="radio" name="l1" data-opt="до 1 000"><span>До 1 000</span></label>
+          <label class="opt"><input type="radio" name="l1" data-opt="до 10 000"><span>До 10 000</span></label>
+          <label class="opt"><input type="radio" name="l1" data-opt="больше 10 000"><span>10 000+</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Одновременных пользователей">
+        <div class="qtitle">Сколько людей одновременно сидят в системе?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="l2" data-opt="до 10"><span>До 10</span></label>
+          <label class="opt"><input type="radio" name="l2" data-opt="до 100"><span>До 100</span></label>
+          <label class="opt"><input type="radio" name="l2" data-opt="до 1 000"><span>До 1 000</span></label>
+          <label class="opt"><input type="radio" name="l2" data-opt="больше 1 000"><span>1 000+</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Пиковая нагрузка">
+        <div class="qtitle">Когда бывает пик?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="l3" data-opt="утро и вечер"><span>Утро и вечер</span></label>
+          <label class="opt"><input type="radio" name="l3" data-opt="открытие записи на популярные тренировки"><span>Старт записи</span></label>
+          <label class="opt"><input type="radio" name="l3" data-opt="нагрузка ровная"><span>Ровная</span></label>
+          <label class="opt"><input type="radio" name="l3" data-opt="не знаю"><span>Не знаю</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Доступность">
+        <div class="qtitle">Насколько критичен простой?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="l4" data-opt="не критично, учебный проект"><span>Не критично</span></label>
+          <label class="opt"><input type="radio" name="l4" data-opt="99% (до ~7 ч/мес)"><span>99%</span></label>
+          <label class="opt"><input type="radio" name="l4" data-opt="99,5% (до ~3,6 ч/мес)"><span>99,5%</span></label>
+          <label class="opt"><input type="radio" name="l4" data-opt="99,9% (до ~43 мин/мес)"><span>99,9%</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Поведение при сбое">
+        <div class="qtitle">Что делать, если что-то упало?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="l5" data-opt="показать понятную ошибку"><span>Показать ошибку</span></label>
+          <label class="opt"><input type="radio" name="l5" data-opt="принять заявку и обработать позже"><span>Принять и обработать позже</span></label>
+          <label class="opt"><input type="radio" name="l5" data-opt="переключиться на резерв"><span>Резервный сервер</span></label>
+          <label class="opt"><input type="radio" name="l5" data-opt="не важно"><span>Не важно</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-title="5. Безопасность и данные">
+      <h2><span class="num">5</span> Безопасность и данные</h2>
+
+      <div class="q" data-q="Вход в систему">
+        <div class="qtitle">Как входят пользователи?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="s1" data-opt="логин и пароль"><span>Логин и пароль</span></label>
+          <label class="opt"><input type="radio" name="s1" data-opt="телефон и SMS-код"><span>Телефон + SMS</span></label>
+          <label class="opt"><input type="radio" name="s1" data-opt="вход через соцсети"><span>Соцсети / Google</span></label>
+          <label class="opt"><input type="radio" name="s1" data-opt="пароль + 2FA для админа"><span>Пароль + 2FA админу</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Персональные данные">
+        <div class="qtitle">Какие данные храним?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="s2" data-opt="имя и телефон"><span>Имя, телефон</span></label>
+          <label class="opt"><input type="checkbox" name="s2" data-opt="email"><span>Email</span></label>
+          <label class="opt"><input type="checkbox" name="s2" data-opt="дата рождения"><span>Дата рождения</span></label>
+          <label class="opt"><input type="checkbox" name="s2" data-opt="медицинские противопоказания"><span>Мед. данные</span></label>
+          <label class="opt"><input type="checkbox" name="s2" data-opt="фото"><span>Фото</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Права администратора">
+        <div class="qtitle">Что админ может менять?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="s3" data-opt="профиль пользователя"><span>Профиль</span></label>
+          <label class="opt"><input type="checkbox" name="s3" data-opt="абонемент"><span>Абонемент</span></label>
+          <label class="opt"><input type="checkbox" name="s3" data-opt="расписание"><span>Расписание</span></label>
+          <label class="opt"><input type="checkbox" name="s3" data-opt="удаление пользователей"><span>Удаление</span></label>
+          <label class="opt"><input type="checkbox" name="s3" data-opt="журнал действий (аудит)"><span>Аудит действий</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Требования к защите данных">
+        <div class="qtitle">Нужно соблюдать 152-ФЗ / GDPR?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="s4" data-opt="да, обязательно"><span>Да</span></label>
+          <label class="opt"><input type="radio" name="s4" data-opt="нет"><span>Нет</span></label>
+          <label class="opt"><input type="radio" name="s4" data-opt="не знаю"><span>Не знаю</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-title="6. Платформы">
+      <h2><span class="num">6</span> Платформы</h2>
+
+      <div class="q" data-q="Платформы">
+        <div class="qtitle">Где должно работать?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="p1" data-opt="веб в браузере"><span>Веб в браузере</span></label>
+          <label class="opt"><input type="checkbox" name="p1" data-opt="мобильное приложение"><span>Мобильное приложение</span></label>
+          <label class="opt"><input type="checkbox" name="p1" data-opt="PWA (сайт как приложение)"><span>PWA</span></label>
+          <label class="opt"><input type="checkbox" name="p1" data-opt="десктоп"><span>Десктоп</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Браузеры">
+        <div class="qtitle">Какие браузеры поддерживаем?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="p2" data-opt="Chrome / Edge"><span>Chrome / Edge</span></label>
+          <label class="opt"><input type="radio" name="p2" data-opt="Chrome / Edge / Safari"><span>+ Safari</span></label>
+          <label class="opt"><input type="radio" name="p2" data-opt="все современные"><span>Все современные</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Офлайн">
+        <div class="qtitle">Нужна работа без интернета?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="p3" data-opt="не нужна"><span>Не нужна</span></label>
+          <label class="opt"><input type="radio" name="p3" data-opt="только просмотр расписания"><span>Только расписание</span></label>
+          <label class="opt"><input type="radio" name="p3" data-opt="полная работа офлайн"><span>Полная</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-title="7. Интерфейс">
+      <h2><span class="num">7</span> Интерфейс</h2>
+
+      <div class="q" data-q="Референсы">
+        <div class="qtitle">Есть образец дизайна?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="d1" data-opt="есть, покажу"><span>Есть, покажу</span></label>
+          <label class="opt"><input type="radio" name="d1" data-opt="нет, на усмотрение"><span>Нет, на усмотрение</span></label>
+          <label class="opt"><input type="radio" name="d1" data-opt="есть брендбук"><span>Есть брендбук</span></label>
+        </div>
+        <input class="free" type="text" placeholder="Ссылка или название (необязательно)">
+      </div>
+
+      <div class="q" data-q="Стиль">
+        <div class="qtitle">Какой стиль ближе?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="d2" data-opt="минимализм"><span>Минимализм</span></label>
+          <label class="opt"><input type="radio" name="d2" data-opt="яркий спортивный"><span>Яркий спортивный</span></label>
+          <label class="opt"><input type="radio" name="d2" data-opt="премиальный тёмный"><span>Премиальный тёмный</span></label>
+          <label class="opt"><input type="radio" name="d2" data-opt="нейтральный"><span>Нейтральный</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Языки">
+        <div class="qtitle">Языки интерфейса?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="d3" data-opt="только русский"><span>Только русский</span></label>
+          <label class="opt"><input type="radio" name="d3" data-opt="русский и английский"><span>RU + EN</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-title="8. Уведомления">
+      <h2><span class="num">8</span> Уведомления</h2>
+
+      <div class="q" data-q="Каналы уведомлений">
+        <div class="qtitle">Куда присылать уведомления?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="n1" data-opt="email"><span>Email</span></label>
+          <label class="opt"><input type="checkbox" name="n1" data-opt="SMS"><span>SMS</span></label>
+          <label class="opt"><input type="checkbox" name="n1" data-opt="push"><span>Push</span></label>
+          <label class="opt"><input type="checkbox" name="n1" data-opt="в интерфейсе сайта"><span>В интерфейсе</span></label>
+          <label class="opt"><input type="checkbox" name="n1" data-opt="Telegram / WhatsApp"><span>Telegram / WhatsApp</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="События для уведомлений">
+        <div class="qtitle">О чём уведомлять?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="n2" data-opt="подтверждение записи"><span>Запись подтверждена</span></label>
+          <label class="opt"><input type="checkbox" name="n2" data-opt="напоминание перед тренировкой"><span>Напоминание</span></label>
+          <label class="opt"><input type="checkbox" name="n2" data-opt="отмена или перенос"><span>Отмена / перенос</span></label>
+          <label class="opt"><input type="checkbox" name="n2" data-opt="сбой или проблема"><span>Сбой / проблема</span></label>
+          <label class="opt"><input type="checkbox" name="n2" data-opt="освободилось место из листа ожидания"><span>Место освободилось</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-title="9. Отчёты">
+      <h2><span class="num">9</span> Отчёты</h2>
+
+      <div class="q" data-q="Кому отчёты">
+        <div class="qtitle">Кому нужны отчёты?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="r1" data-opt="администратору"><span>Админу</span></label>
+          <label class="opt"><input type="radio" name="r1" data-opt="тренеру"><span>Тренеру</span></label>
+          <label class="opt"><input type="radio" name="r1" data-opt="руководству"><span>Руководству</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Содержание отчётов">
+        <div class="qtitle">Что показывать в отчётах?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="r2" data-opt="посещаемость"><span>Посещаемость</span></label>
+          <label class="opt"><input type="checkbox" name="r2" data-opt="загрузка залов и тренеров"><span>Загрузка</span></label>
+          <label class="opt"><input type="checkbox" name="r2" data-opt="доход и оплаты"><span>Доход</span></label>
+          <label class="opt"><input type="checkbox" name="r2" data-opt="популярные тренировки"><span>Популярные тренировки</span></label>
+          <label class="opt"><input type="checkbox" name="r2" data-opt="отмены и неявки"><span>Отмены и неявки</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Формат отчётов">
+        <div class="qtitle">В каком виде?<span class="hint">можно несколько</span></div>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="r3" data-opt="на экране"><span>На экране</span></label>
+          <label class="opt"><input type="checkbox" name="r3" data-opt="Excel / CSV"><span>Excel / CSV</span></label>
+          <label class="opt"><input type="checkbox" name="r3" data-opt="PDF"><span>PDF</span></label>
+        </div>
+      </div>
+
+      <div class="q" data-q="Скорость отчётов">
+        <div class="qtitle">«Быстро» — это сколько?</div>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="r4" data-opt="до 1 секунды"><span>До 1 с</span></label>
+          <label class="opt"><input type="radio" name="r4" data-opt="до 5 секунд"><span>До 5 с</span></label>
+          <label class="opt"><input type="radio" name="r4" data-opt="до 30 секунд"><span>До 30 с</span></label>
+          <label class="opt"><input type="radio" name="r4" data-opt="не важно"><span>Не важно</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" data-title="10. Свободное поле">
+      <h2><span class="num">10</span> Свободное поле</h2>
+
+      <div class="q" data-q="Комментарий">
+        <div class="qtitle">Что препод уже сказал или точно спросит?<span class="hint">если есть — 1–2 фразы</span></div>
+        <input class="free" type="text" placeholder="Например: «главное — база данных и отчёты»">
+      </div>
+    </section>
+
+  </div>
+
+  <section class="card" id="result" hidden>
+    <h2><span class="num">✓</span> Готовый ответ</h2>
+    <p class="muted" style="margin:0 0 10px">Скопируй и пришли мне — я соберу ТЗ.</p>
+    <textarea id="out" readonly></textarea>
+    <div class="res-actions">
+      <button class="primary" id="copyBtn">Скопировать</button>
+      <button id="downloadBtn">Скачать .txt</button>
+    </div>
+  </section>
+</main>
+
+<div class="actions">
+  <div class="actions-in">
+    <button id="resetBtn">Сбросить</button>
+    <button class="primary" id="buildBtn">Собрать ответ</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Скопировано</div>
+
+<script>
+(function(){
+  var qs = Array.prototype.slice.call(document.querySelectorAll('#form .q'));
+  var counter = document.getElementById('counter');
+  var bar = document.getElementById('bar');
+  var result = document.getElementById('result');
+  var out = document.getElementById('out');
+  var toastEl = document.getElementById('toast');
+
+  function isAnswered(q){
+    if (q.querySelector('input[type=radio]:checked, input[type=checkbox]:checked')) return true;
+    var f = q.querySelector('.free');
+    return !!(f && f.value.trim());
+  }
+
+  function update(){
+    var n = qs.filter(isAnswered).length;
+    counter.textContent = n + ' / ' + qs.length;
+    bar.style.width = (qs.length ? (n / qs.length * 100) : 0) + '%';
+  }
+
+  function build(){
+    var lines = [];
+    lines.push('ОПРОСНИК ПО ПРОЕКТУ: система онлайн-записи в спортивный центр');
+    lines.push('Пустые пункты — на усмотрение исполнителя.');
+    lines.push('');
+    Array.prototype.forEach.call(document.querySelectorAll('#form .card'), function(sec){
+      var items = [];
+      Array.prototype.forEach.call(sec.querySelectorAll('.q'), function(q){
+        var picked = Array.prototype.map.call(
+          q.querySelectorAll('input[type=radio]:checked, input[type=checkbox]:checked'),
+          function(i){ return i.dataset.opt; }
+        );
+        var freeEl = q.querySelector('.free');
+        var free = freeEl ? freeEl.value.trim() : '';
+        var val = picked.join('; ');
+        if (free) val += (val ? ' — ' : '') + free;
+        if (val) items.push('• ' + q.dataset.q + ': ' + val);
+      });
+      if (items.length){
+        lines.push('== ' + sec.dataset.title + ' ==');
+        lines = lines.concat(items);
+        lines.push('');
+      }
+    });
+    var text = lines.join('\n').trim();
+    if (text.split('\n').length <= 3){
+      text = 'Пока ничего не отмечено.';
+    }
+    out.value = text;
+    result.hidden = false;
+    result.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 1600);
+  }
+
+  function copy(){
+    var text = out.value;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ showToast('Скопировано'); },
+        function(){ fallbackCopy(text); });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text){
+    out.removeAttribute('readonly');
+    out.select();
+    try { document.execCommand('copy'); showToast('Скопировано'); }
+    catch(e){ showToast('Не получилось, выдели вручную'); }
+    out.setAttribute('readonly','');
+    out.blur();
+  }
+
+  function download(){
+    var blob = new Blob([out.value], {type:'text/plain;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'otvety-po-proektu.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  document.getElementById('form').addEventListener('input', update);
+  document.getElementById('form').addEventListener('change', update);
+  document.getElementById('buildBtn').addEventListener('click', build);
+  document.getElementById('copyBtn').addEventListener('click', copy);
+  document.getElementById('downloadBtn').addEventListener('click', download);
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    document.getElementById('form').reset();
+    result.hidden = true;
+    update();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>

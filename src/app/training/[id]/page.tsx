@@ -38,7 +38,7 @@ export default async function TrainingPage({
     : null;
 
   const isActive = myBooking?.status === "ACTIVE";
-  const started = training.startsAt.getTime() <= Date.now();
+  const started = training.startsAt.getTime() <= new Date().getTime();
   const unavailable =
     training.status !== "SCHEDULED" || started || free === 0;
 

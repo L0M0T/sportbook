@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SportBook
 
-## Getting Started
+Онлайн-запись в спортцентр: расписание, абонементы, QR-чек-ин и панель сотрудника.
+Учебный проект: данные вымышленные, оплата и SMS имитируются.
 
-First, run the development server:
+**Стек:** Next.js 16 (App Router, Server Actions) · React 19 · TypeScript · Prisma 7 + SQLite · Tailwind CSS 4 · Vitest.
+
+---
+
+## Возможности
+
+**Клиент**
+
+- Вход по номеру телефона и одноразовому коду (OTP). Пароль не нужен.
+- Расписание на 7 дней с фильтрами по направлению и дню.
+- Карточка тренировки: тренер, зал, свободные места, цена.
+- Запись в один клик; занятие списывается с абонемента.
+- Отмена не позднее чем за 2 часа — занятие возвращается на счёт.
+- Личный кабинет: баланс абонемента, предстоящие тренировки, история.
+- QR-код записи для входа в зал.
+- Покупка и продление абонемента (4 тарифа, оплата-заглушка).
+- Уведомления в приложении.
+- PWA: установка на телефон, офлайн-просмотр последних страниц расписания.
+
+**Сотрудник (менеджер / администратор)**
+
+- Сводка: клиенты, тренировки, загрузка залов, выручка за 30 дней.
+- Создание тренировок (МСК), отмена с возвратом занятий всем записавшимся.
+- Чек-ин по QR-токену или коду записи.
+- Список клиентов: роли, абонементы, блокировка/разблокировка.
+- Журнал действий (audit log) по всем изменениям.
+- Экспорт всех записей в CSV.
+
+**Три зала:** «Зал A» (йога, пилатес), «Зал B» (бокс, кроссфит) и «Качалка» (силовые и персональные тренировки).
+
+---
+
+## Быстрый старт
+
+Нужен Node.js 20+ (проверено на Node 26) и npm.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env          # Windows: copy .env.example .env
+npx prisma migrate deploy     # создать БД и применить миграции
+npm run db:seed               # демо-данные
+npm run dev                   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Открыть приложение и войти по демо-номеру. Код показывается прямо на экране
+(режим разработки) и дублируется в консоль сервера.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Демо-аккаунты
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Роль | Телефон | Что доступно |
+| --- | --- | --- |
+| Администратор | `+7 999 000-00-01` | всё, включая смену ролей |
+| Менеджер | `+7 999 000-00-02` | расписание, чек-ин, клиенты, журнал |
+| Клиент | `+7 999 000-00-03` | расписание, запись, абонемент |
 
-## Learn More
+У клиента уже есть абонемент на 8 занятий.
 
-To learn more about Next.js, take a look at the following resources:
+> Если код не приходит — проверьте лимит: не более 3 запросов за 15 минут на номер.
+> В демо-режиме код всё равно показывается на экране.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Скрипты
 
-## Deploy on Vercel
+| Команда | Назначение |
+| --- | --- |
+| `npm run dev` | dev-сервер |
+| `npm run build` | production-сборка |
+| `npm start` | запуск собранного приложения |
+| `npm test` | unit-тесты (Vitest) |
+| `npm run typecheck` | проверка TypeScript |
+| `npm run lint` | ESLint |
+| `npm run db:seed` | пересоздать демо-данные |
+| `npm run db:studio` | Prisma Studio |
+| `npm run icons` | перегенерировать PWA-иконки |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Как устроено
+
+```
+prisma/
+  schema.prisma        10 моделей: User, OtpCode, Trainer, Room, Training,
+                       Booking, Subscription, Payment, Notification, AuditLog
+  seed.ts              демо-данные: 3 пользователя, 3 тренера, 3 зала, 36 тренировок
+src/
+  app/
+    page.tsx           расписание с фильтрами
+    training/[id]/     карточка тренировки + запись
+    my/                кабинет, абонемент, QR, отмена
+    subscriptions/     тарифы и покупка
+    notifications/     уведомления
+    admin/             сводка, расписание, чек-ин, клиенты, журнал
+    actions/           server actions: auth, booking, subscription, admin
+    api/auth/          OTP: запрос и проверка кода
+    api/admin/export/  CSV-выгрузка
+  lib/
+    auth.ts            JWT-сессия в httpOnly cookie (jose)
+    otp.ts             генерация и HMAC-проверка кода
+    booking logic      транзакции в actions/booking.ts
+    providers/         SMS и оплата — заменяемые адаптеры
+    time.ts            московское время без зависимости от TZ сервера
+  components/          шапка, PWA-регистрация
+```
+
+### Ключевые решения
+
+- **Безопасность.** OTP хранится только как HMAC-SHA256, живёт 5 минут, максимум
+  5 попыток. Сессия — подписанный JWT в `httpOnly` cookie, 7 дней.
+- **Деньги.** Цены в копейках (`priceCents`), операции с абонементом — в транзакции.
+  Отмена возвращает занятие; отмена тренировки администратором возвращает занятия всем.
+- **Время.** Все тренировки хранятся в UTC, ввод и вывод — по Москве (UTC+3).
+  Это убирает зависимость от часового пояса сервера.
+- **Оплата.** Интерфейс `PaymentProvider` + `MockPaymentProvider`. Чтобы подключить
+  реальный эквайринг, достаточно заменить один класс в `src/lib/providers/payment.ts`,
+  бизнес-логика не меняется.
+- **SMS.** Аналогично: `SmsProvider` + заглушка, печатающая код в консоль.
+
+---
+
+## Соответствие 12 требованиям задания
+
+Полные измеримые критерии — в [`docs/ТЗ.md`](docs/ТЗ.md), ответы на опросник — в
+[`docs/oprosnik.html`](docs/oprosnik.html). Ниже — что реально закрыто в MVP.
+
+| № | Требование | Как закрыто в MVP | Как проверить |
+|---|---|---|---|
+| 1 | Система простая | 3 роли, 5 экранов у клиента, запись без инструкции | записаться с нуля за минуту |
+| 2 | Клиенты быстро записываются | Server Actions, запись в 2 клика, без перезагрузок | «Записаться» → «Мои записи» |
+| 3 | Интерфейс красивый | Тёмная тема, единые токены, адаптив 360–1920 px | открыть на телефоне и десктопе |
+| 4 | Система работает всегда | `/api/health` с проверкой БД; SQLite + один процесс (без кластера и бэкапов — вне MVP) | `GET /api/health` → `{ ok: true }` |
+| 5 | Админ меняет данные | Роли, блокировка (soft delete), журнал аудита | `/admin/users` → изменить → `/admin/audit` |
+| 6 | Данные защищены | RBAC на страницах и actions, httpOnly JWT, OTP с лимитами, без паролей | клиент не откроет `/admin` и CSV |
+| 7 | Выдерживает нагрузку | Не проверялось: SQLite и один инстанс — граница MVP | — (в ТЗ описано, как тестировать k6) |
+| 8 | Кроссплатформенность | Адаптивная вёрстка + PWA (манифест, service worker, офлайн-страница) | установить приложение, открыть офлайн |
+| 9 | Уведомления | In-app уведомления, SMS-адаптер; отмена тренировки уведомляет всех записанных | `/notifications`, отменить тренировку админом |
+| 10 | Качественная разработка | TypeScript strict, ESLint, 31 unit-тест, README | `npm test`, `npm run lint` |
+| 11 | Безопасный вход | Телефон + OTP: 5 минут, 5 попыток, 3 запроса за 15 минут, HMAC-хеш | ввести неверный код 5 раз |
+| 12 | Быстрые отчёты | Сводка в админке + CSV-экспорт всех записей | `/admin` и `/api/admin/export` |
+
+---
+
+## Ограничения учебного проекта
+
+- SMS и оплата — заглушки, реальные шлюзы не подключены.
+- SQLite подходит для демо и одного инстанса; для продакшена — PostgreSQL.
+- Нет push-уведомлений и email-рассылок (только in-app).
+- OTP-коды и сессии не ревокируются централизованно.

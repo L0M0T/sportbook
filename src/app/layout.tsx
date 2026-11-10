@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
+import { PwaRegister } from "@/components/pwa-register";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -14,9 +15,33 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SportBook — онлайн-запись в спортцентр",
+  title: {
+    default: "SportBook — онлайн-запись в спортцентр",
+    template: "%s · SportBook",
+  },
   description:
     "Запись на тренировки, абонементы и чек-ин по QR. Учебный проект.",
+  manifest: "/manifest.webmanifest",
+  applicationName: "SportBook",
+  appleWebApp: {
+    capable: true,
+    title: "SportBook",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07080b",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -31,6 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="border-t border-line/70 py-6 text-center text-xs text-muted">
           SportBook · учебный проект · данные вымышленные
         </footer>
+        <PwaRegister />
       </body>
     </html>
   );
