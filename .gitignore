@@ -34,6 +34,11 @@ yarn-error.log*
 .env*
 !.env.example
 
+# portable Node, скачивается SportBook.bat при первом запуске
+.node/
+.node.zip
+.node-tmp/
+
 # vercel
 .vercel
 
